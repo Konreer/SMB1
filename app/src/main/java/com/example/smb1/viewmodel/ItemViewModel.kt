@@ -27,7 +27,7 @@ class ItemViewModel(application: Application) : AndroidViewModel(application) {
         repository.delete(item)
     }
 
-    fun insertItem(item: Item){
+    fun insertItem(item: Item): Long {
         return repository.insert(item)
     }
 

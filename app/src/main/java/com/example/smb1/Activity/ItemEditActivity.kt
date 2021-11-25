@@ -12,7 +12,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.example.smb1.R
@@ -21,6 +20,8 @@ import com.example.smb1.viewmodel.ItemViewModel
 
 
 class ItemEditActivity() : AppCompatActivity() {
+    private val ACTION_ITEM_ADDED = "com.example.smb1.Activity.ItemEditActivity.ITEMADDED"
+
     private lateinit var item: Item
     private lateinit var itemViewModel: ItemViewModel
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,8 +88,23 @@ class ItemEditActivity() : AppCompatActivity() {
         item.name=findViewById<EditText>(R.id.editTextTextPersonName).text.toString()
         item.amount=findViewById<EditText>(R.id.editTextAmount).text.toString().toInt()
         item.price=findViewById<EditText>(R.id.editTextPrice).text.toString().toDouble()
-        itemViewModel.insertItem(item)
+        val id = itemViewModel.insertItem(item)
         finish()
+
+        var itemId = intent.extras?.getLong("itemId")
+
+        if (itemId!!.toInt() == 0 ) {
+            var sendIntent = Intent(ACTION_ITEM_ADDED)
+            sendIntent.setAction(ACTION_ITEM_ADDED)
+            sendIntent.putExtra("class", componentName.className)
+            sendIntent.putExtra("package", this.packageName)
+            sendIntent.putExtra("itemId", id)
+            sendIntent.putExtra("amount", item.amount)
+            sendIntent.putExtra("name", item.name)
+            sendIntent.putExtra("price", item.price)
+            sendBroadcast(sendIntent.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES), "com.example.myapp.PERMISSION")
+
+        }
     }
 
     override fun onPause() {

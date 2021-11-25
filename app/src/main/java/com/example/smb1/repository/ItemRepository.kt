@@ -9,8 +9,8 @@ class ItemRepository(private val itemDao: ItemDao) {
 
     val allItems: LiveData<List<Item>> = itemDao.getAllItems()
 
-    fun insert(item: Item){
-        itemDao.insert(item);
+    fun insert(item: Item): Long {
+        return itemDao.insert(item);
     }
     fun getItemById(id: Long): Item {
         return itemDao.getItemById(id);
