@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1004410007648",
+    "firebase_url": "https://smb3-7fa67-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "smb3-7fa67",
+    "storage_bucket": "smb3-7fa67.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1004410007648:android:2149341a5172075f7dd305",
+        "android_client_info": {
+          "package_name": "com.example.smb1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1004410007648-o933bc4hof49o4h5h7p4ql007bsk2s5o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKZynvFzv4I04x3Z7Hvu3uerEBvuO6u2U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1004410007648-o933bc4hof49o4h5h7p4ql007bsk2s5o.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

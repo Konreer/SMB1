@@ -1,12 +1,14 @@
 package com.example.smb1.Activity
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.example.smb1.R
+import com.google.firebase.auth.FirebaseAuth
 
 class SettingsActivity : AppCompatActivity() {
     lateinit var preferences: SharedPreferences
@@ -67,5 +69,13 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         updateFontAndFontFamily()
         super.onResume()
+    }
+
+    fun logout(view: android.view.View) {
+        FirebaseAuth.getInstance().signOut()
+        val intent = Intent(this, MainActivity::class.java)
+        this.startActivity(intent)
+        finish()
+
     }
 }

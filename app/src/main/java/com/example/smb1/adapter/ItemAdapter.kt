@@ -9,14 +9,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.smb1.R
 import com.example.smb1.adapter.utils.AdapterActionSetter
 import com.example.smb1.entity.Item
+import com.example.smb1.entity.ItemFirebase
 
 
 class ItemAdapter(
-    private val itemClickListener: AdapterActionSetter<Item>
+    private val itemClickListener: AdapterActionSetter<ItemFirebase>
 ) : RecyclerView.Adapter<ItemAdapter.ViewHolder?>()  {
 
-    private var items: List<Item> = emptyList()
-
+    private var items: List<ItemFirebase> = emptyList()
+    private lateinit var listName: String
 
     inner class ViewHolder(
         itemView: View) : RecyclerView.ViewHolder(itemView), View.OnClickListener  {
@@ -33,10 +34,10 @@ class ItemAdapter(
         override fun onClick(v: View?) {
             if (adapterPosition != RecyclerView.NO_POSITION){
                 if (v is CheckBox) {
-                    itemClickListener.onCheckboxClick(items[adapterPosition], checkBox.isChecked)
+                    itemClickListener.onCheckboxClick(items[adapterPosition], checkBox.isChecked, listName)
                 }
                 else {
-                    itemClickListener.onItemClick(items[adapterPosition])
+                    itemClickListener.onItemClick(items[adapterPosition], listName, adapterPosition)
                 }
             }
         }
@@ -53,7 +54,7 @@ class ItemAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item: Item = items.get(position)
+        val item: ItemFirebase = items.get(position)
         holder.nameTextView.setText(item.name)
         holder.amountTextView.setText(item.amount.toString())
         holder.priceTextView.setText(item.price.toString())
@@ -64,8 +65,9 @@ class ItemAdapter(
         return items.size
     }
 
-    fun setItems(items: List<Item>) {
+    fun setItems(items: List<ItemFirebase>, listName: String) {
         this.items = items
+        this.listName = listName
         notifyDataSetChanged()
     }
 

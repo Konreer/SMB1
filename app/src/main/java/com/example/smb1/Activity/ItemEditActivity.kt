@@ -16,39 +16,58 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.example.smb1.R
 import com.example.smb1.entity.Item
+import com.example.smb1.entity.ItemFirebase
 import com.example.smb1.viewmodel.ItemViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 
 class ItemEditActivity() : AppCompatActivity() {
     private val ACTION_ITEM_ADDED = "com.example.smb1.Activity.ItemEditActivity.ITEMADDED"
 
-    private lateinit var item: Item
-    private lateinit var itemViewModel: ItemViewModel
+    private lateinit var item: ItemFirebase
+    private lateinit var path: String
+    private var db: FirebaseDatabase =
+        FirebaseDatabase.getInstance("https://smb3-7fa67-default-rtdb.europe-west1.firebasedatabase.app")
+    private var mAuth: FirebaseAuth = FirebaseAuth.getInstance()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_item_edit)
-        this.itemViewModel = ViewModelProvider(this).get(ItemViewModel::class.java)
-        var itemId = intent.extras?.getLong("itemId")
+        var path = intent.extras?.getString("path")
+        val index = intent.extras?.getInt("index")
 
-        if (itemId!!.toInt() != 0 ) {
-            this.item = itemViewModel.getItemById(intent.extras!!.getLong("itemId"))
-        }
-        else {
-            var deleteButton: Button = this.findViewById(R.id.deleteButton)
+        if (index!! != -1) {
+            this.path = path!!
+            db.getReference(path).get().addOnCompleteListener(this) {
+                this.item = it.result!!.getValue(ItemFirebase::class.java)!!
+                setContentView(R.layout.activity_item_edit)
+                findViewById<EditText>(R.id.editTextPrice).setText(item.price.toString())
+                findViewById<EditText>(R.id.editTextAmount).setText(item.amount.toString())
+                findViewById<EditText>(R.id.editTextTextPersonName).setText(item.name)
+
+                findViewById<EditText>(R.id.editTextPrice).filters =
+                    arrayOf(DecimalDigitsInputFilter(2))
+                updateFontAndFontFamily()
+            }
+        } else {
+            setContentView(R.layout.activity_item_edit)
+            val deleteButton: Button = this.findViewById(R.id.deleteButton)
             deleteButton.visibility = View.INVISIBLE
-            var shoppingListId = intent.extras!!.getLong("shoppingListId")
-            this.item = Item("name", 0.0, 0, false, shoppingListId)
+            this.item = ItemFirebase("name", 0.0, 0, false)
+            findViewById<EditText>(R.id.editTextPrice).setText(item.price.toString())
+            findViewById<EditText>(R.id.editTextAmount).setText(item.amount.toString())
+            findViewById<EditText>(R.id.editTextTextPersonName).setText(item.name)
+
+            findViewById<EditText>(R.id.editTextPrice).filters =
+                arrayOf(DecimalDigitsInputFilter(2))
+            updateFontAndFontFamily()
         }
 
 
-
-
-        findViewById<EditText>(R.id.editTextPrice).setText(item.price.toString())
-        findViewById<EditText>(R.id.editTextAmount).setText(item.amount.toString())
-        findViewById<EditText>(R.id.editTextTextPersonName).setText(item.name)
-
-        findViewById<EditText>(R.id.editTextPrice).filters = arrayOf(DecimalDigitsInputFilter(2))
-        updateFontAndFontFamily()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -63,11 +82,11 @@ class ItemEditActivity() : AppCompatActivity() {
         return true
     }
 
-    fun updateFontAndFontFamily(){
+    fun updateFontAndFontFamily() {
         val preferences = this.getSharedPreferences("prefs_file1", Context.MODE_PRIVATE)
         val fontSize = preferences.getFloat("fontSize", 0f)
         val fontFamily = preferences.getString("fontFamily", "")
-        if (fontSize != 0f){
+        if (fontSize != 0f) {
             findViewById<EditText>(R.id.editTextAmount).textSize = fontSize
             findViewById<EditText>(R.id.editTextTextPersonName).textSize = fontSize
             findViewById<EditText>(R.id.editTextPrice).textSize = fontSize
@@ -75,34 +94,92 @@ class ItemEditActivity() : AppCompatActivity() {
             findViewById<Button>(R.id.deleteButton).textSize = fontSize
         }
 
-        if (!fontFamily.equals("")){
-            findViewById<EditText>(R.id.editTextAmount).typeface = Typeface.createFromAsset(this.assets, fontFamily)
-            findViewById<EditText>(R.id.editTextTextPersonName).typeface = Typeface.createFromAsset(this.assets, fontFamily)
-            findViewById<EditText>(R.id.editTextPrice).typeface = Typeface.createFromAsset(this.assets, fontFamily)
-            findViewById<Button>(R.id.saveButton).typeface = Typeface.createFromAsset(this.assets, fontFamily)
-            findViewById<Button>(R.id.deleteButton).typeface = Typeface.createFromAsset(this.assets, fontFamily)
+        if (!fontFamily.equals("")) {
+            findViewById<EditText>(R.id.editTextAmount).typeface =
+                Typeface.createFromAsset(this.assets, fontFamily)
+            findViewById<EditText>(R.id.editTextTextPersonName).typeface =
+                Typeface.createFromAsset(this.assets, fontFamily)
+            findViewById<EditText>(R.id.editTextPrice).typeface =
+                Typeface.createFromAsset(this.assets, fontFamily)
+            findViewById<Button>(R.id.saveButton).typeface =
+                Typeface.createFromAsset(this.assets, fontFamily)
+            findViewById<Button>(R.id.deleteButton).typeface =
+                Typeface.createFromAsset(this.assets, fontFamily)
         }
     }
 
     fun saveEdit(view: android.view.View) {
-        item.name=findViewById<EditText>(R.id.editTextTextPersonName).text.toString()
-        item.amount=findViewById<EditText>(R.id.editTextAmount).text.toString().toInt()
-        item.price=findViewById<EditText>(R.id.editTextPrice).text.toString().toDouble()
-        val id = itemViewModel.insertItem(item)
+
+        //val id = itemViewModel.insertItem(item)
+
+        val index = intent.extras?.getInt("index")
+        val listName = intent.extras?.getString("listName")
+        if (index == -1) {
+            val item = this.item
+            val items = ArrayList<ItemFirebase>()
+            val ref = db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName)
+                .child("items")
+            ref.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    for (itemSnapshot in dataSnapshot.children) {
+                        val item = itemSnapshot.getValue(ItemFirebase::class.java)
+                        items.add(item!!)
+                    }
+                    item.name = findViewById<EditText>(R.id.editTextTextPersonName).text.toString()
+                    item.amount =
+                        findViewById<EditText>(R.id.editTextAmount).text.toString().toInt()
+                    item.price =
+                        findViewById<EditText>(R.id.editTextPrice).text.toString().toDouble()
+                    items.add(item)
+                    db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items")
+                        .setValue(items)
+                }
+
+                override fun onCancelled(databaseError: DatabaseError) {
+                    throw databaseError.toException()
+                }
+            })
+        } else {
+
+            val item = this.item
+            val items = ArrayList<ItemFirebase>()
+            val ref = db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName)
+                .child("items")
+            ref.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    for (itemSnapshot in dataSnapshot.children) {
+                        val itemFromSnapshot = itemSnapshot.getValue(ItemFirebase::class.java)
+                        items.add(itemFromSnapshot!!)
+                    }
+                    val indexOfItemToChange = items.indexOf(item)
+                    item.name = findViewById<EditText>(R.id.editTextTextPersonName).text.toString()
+                    item.amount =
+                        findViewById<EditText>(R.id.editTextAmount).text.toString().toInt()
+                    item.price =
+                        findViewById<EditText>(R.id.editTextPrice).text.toString().toDouble()
+                    items[indexOfItemToChange] = item
+                    db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items")
+                        .setValue(items)
+                }
+
+                override fun onCancelled(databaseError: DatabaseError) {
+                    throw databaseError.toException()
+                }
+            })
+        }
         finish()
-
-        var itemId = intent.extras?.getLong("itemId")
-
-        if (itemId!!.toInt() == 0 ) {
-            var sendIntent = Intent(ACTION_ITEM_ADDED)
+        if (index == -1) {
+            val sendIntent = Intent(ACTION_ITEM_ADDED)
             sendIntent.setAction(ACTION_ITEM_ADDED)
             sendIntent.putExtra("class", componentName.className)
             sendIntent.putExtra("package", this.packageName)
-            sendIntent.putExtra("itemId", id)
             sendIntent.putExtra("amount", item.amount)
             sendIntent.putExtra("name", item.name)
             sendIntent.putExtra("price", item.price)
-            sendBroadcast(sendIntent.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES), "com.example.myapp.PERMISSION")
+            sendBroadcast(
+                sendIntent.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES),
+                "com.example.myapp.PERMISSION"
+            )
 
         }
     }
@@ -113,7 +190,26 @@ class ItemEditActivity() : AppCompatActivity() {
     }
 
     fun deleteItem(view: android.view.View) {
-        itemViewModel.deleteItem(item)
+        val listName = intent.extras?.getString("listName")
+        val item = this.item
+        val items = ArrayList<ItemFirebase>()
+        val ref = db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName)
+            .child("items")
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (itemSnapshot in dataSnapshot.children) {
+                    val itemFromSnapshot = itemSnapshot.getValue(ItemFirebase::class.java)
+                    items.add(itemFromSnapshot!!)
+                }
+                items.remove(item)
+                db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items")
+                    .setValue(items)
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                throw databaseError.toException()
+            }
+        })
         finish()
     }
 }

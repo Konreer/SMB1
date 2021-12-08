@@ -8,6 +8,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -17,22 +18,24 @@ import com.example.smb1.R
 import com.example.smb1.adapter.ItemAdapter
 import com.example.smb1.adapter.utils.AdapterActionSetter
 import com.example.smb1.entity.Item
+import com.example.smb1.entity.ItemFirebase
 import com.example.smb1.relation.ShoppingListWithItems
 import com.example.smb1.viewmodel.ItemViewModel
 import com.example.smb1.viewmodel.ShoppingListViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
-class ShoppingListEditActivity : AppCompatActivity(), AdapterActionSetter<Item> {
+class ShoppingListEditActivity : AppCompatActivity(), AdapterActionSetter<ItemFirebase> {
 
-    private lateinit var itemViewModel: ItemViewModel
-    private lateinit var shoppingListViewModel: ShoppingListViewModel
-    private lateinit var shoppingListWithItems: ShoppingListWithItems
+    private var db: FirebaseDatabase =
+        FirebaseDatabase.getInstance("https://smb3-7fa67-default-rtdb.europe-west1.firebasedatabase.app")
+    private var mAuth: FirebaseAuth = FirebaseAuth.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.shoppingListViewModel = ViewModelProvider(this).get(ShoppingListViewModel::class.java)
-        this.itemViewModel = ViewModelProvider(this).get(ItemViewModel::class.java)
-        this.shoppingListWithItems = shoppingListViewModel.getShoppingListById(intent.extras!!.getLong("shoppingListId"))
-
 
         setContentView(R.layout.activity_shopping_list_edit)
         showShoppingList()
@@ -42,6 +45,27 @@ class ShoppingListEditActivity : AppCompatActivity(), AdapterActionSetter<Item> 
         val inflater: MenuInflater = menuInflater
         inflater.inflate(R.menu.menu, menu)
         return true
+    }
+
+    override fun onCheckboxClick(item: ItemFirebase, isChecked: Boolean, listName: String) {
+        item.checked = isChecked
+
+        val ref = db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName).child("items")
+        val items = ArrayList<ItemFirebase>()
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (itemSnapshot in dataSnapshot.children) {
+                    val item = itemSnapshot.getValue(ItemFirebase::class.java)
+                    items.add(item!!)
+                }
+                items[items.indexOf(item)].checked = isChecked
+                db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items").setValue(items)
+            }
+            override fun onCancelled(databaseError: DatabaseError) {
+                throw databaseError.toException()
+            }
+        })
+
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -55,30 +79,50 @@ class ShoppingListEditActivity : AppCompatActivity(), AdapterActionSetter<Item> 
         val layout: RecyclerView = findViewById(R.id.recycler_view);
         val itemAdapter = ItemAdapter(this)
 
-        itemViewModel.getItemsByListId(shoppingListWithItems.shoppingList.shoppingListId).observe(this, { items ->
-            items?.let {
-                itemAdapter.setItems(it)
+        val listName = intent.extras?.getString("listName")
+
+        val ref = db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName).child("items")
+        val items = ArrayList<ItemFirebase>()
+
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (itemSnapshot in dataSnapshot.children) {
+                    val item = itemSnapshot.getValue(ItemFirebase::class.java)
+                    items.add(item!!)
+                }
+                itemAdapter.setItems(items, listName!!)
+            }
+            override fun onCancelled(databaseError: DatabaseError) {
+                throw databaseError.toException()
             }
         })
+
         layout.adapter = itemAdapter
         layout.layoutManager = LinearLayoutManager(this)
 
     }
 
-    override fun onItemClick(item: Item) {
+    override fun onItemClick(item: ItemFirebase, listName: String, index: Int) {
         val intent = Intent(this, ItemEditActivity::class.java).apply {
-            putExtra("itemId", item.itemId)
+            putExtra("path", "users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items/" + index)
+            putExtra("index", index)
+            putExtra("listName", listName)
         }
         this.startActivity(intent)
     }
 
     fun deleteList(view: android.view.View) {
-        shoppingListViewModel.delete(shoppingListWithItems.shoppingList)
+        val listName = intent.extras?.getString("listName")
+        db.getReference("users/" + mAuth.currentUser!!.uid + "/lists/" + listName).removeValue()
+        this.finish()
     }
 
     fun addItem(view: android.view.View) {
+        val listName = intent.extras?.getString("listName")
         val intent = Intent(this, ItemEditActivity::class.java).apply {
-            putExtra("shoppingListId", shoppingListWithItems.shoppingList.shoppingListId)
+            putExtra("path", "users/" + mAuth.currentUser!!.uid + "/lists/" + listName + "/items")
+            putExtra("index", -1)
+            putExtra("listName", listName)
         }
         this.startActivity(intent)
     }

@@ -8,14 +8,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.smb1.R
 import com.example.smb1.adapter.utils.AdapterActionSetter
 import com.example.smb1.entity.ShoppingList
+import com.example.smb1.entity.ShoppingListFirebase
 import com.example.smb1.relation.ShoppingListWithItems
 
 class ShoppingListAdapter(
-    private val itemClickListener: AdapterActionSetter<ShoppingListWithItems>
+    private val itemClickListener: AdapterActionSetter<ShoppingListFirebase>
     )
     : RecyclerView.Adapter<ShoppingListAdapter.ViewHolder?>(){
-    private var shoppingLists: List<ShoppingListWithItems> = emptyList()
-
+    private var shoppingLists: List<ShoppingListFirebase> = emptyList()
+    private lateinit var listName: String
 
     inner class ViewHolder(
         itemView: View
@@ -27,7 +28,7 @@ class ShoppingListAdapter(
 
         override fun onClick(v: View?) {
             if (adapterPosition != RecyclerView.NO_POSITION){
-                itemClickListener.onItemClick(shoppingLists[adapterPosition])
+                itemClickListener.onItemClick(shoppingLists[adapterPosition], shoppingLists[adapterPosition].date.toString(), adapterPosition)
             }
         }
     }
@@ -43,7 +44,7 @@ class ShoppingListAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val list: ShoppingList = shoppingLists.get(position).shoppingList
+        val list: ShoppingListFirebase = shoppingLists.get(position)
         holder.dateTextView.setText(list.date.toString())
         itemClickListener.setFont(listOf(holder.dateTextView))
     }
@@ -52,7 +53,7 @@ class ShoppingListAdapter(
         return shoppingLists.size
     }
 
-    fun setLists(shoppingLists: List<ShoppingListWithItems>) {
+    fun setLists(shoppingLists: List<ShoppingListFirebase>) {
         this.shoppingLists = shoppingLists
         notifyDataSetChanged()
     }

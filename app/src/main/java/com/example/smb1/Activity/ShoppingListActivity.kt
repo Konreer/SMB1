@@ -4,28 +4,34 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smb1.R
 import com.example.smb1.adapter.ShoppingListAdapter
 import com.example.smb1.adapter.utils.AdapterActionSetter
-import com.example.smb1.entity.ShoppingList
-import com.example.smb1.relation.ShoppingListWithItems
-import com.example.smb1.viewmodel.ShoppingListViewModel
+import com.example.smb1.entity.ShoppingListFirebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import java.util.*
 
-class ShoppingListActivity : AppCompatActivity(), AdapterActionSetter<ShoppingListWithItems> {
-    private lateinit var shoppingListViewModel: ShoppingListViewModel
+class ShoppingListActivity : AppCompatActivity(), AdapterActionSetter<ShoppingListFirebase> {
+
+    private var db: FirebaseDatabase =
+        FirebaseDatabase.getInstance("https://smb3-7fa67-default-rtdb.europe-west1.firebasedatabase.app")
+    private var mAuth: FirebaseAuth = FirebaseAuth.getInstance()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        this.shoppingListViewModel = ViewModelProvider(this).get(ShoppingListViewModel::class.java)
 
         setContentView(R.layout.activity_shopping_list)
         showShoppingLists()
@@ -48,11 +54,21 @@ class ShoppingListActivity : AppCompatActivity(), AdapterActionSetter<ShoppingLi
         val layout : RecyclerView = findViewById(R.id.recycler_view);
         val itemAdapter = ShoppingListAdapter(this)
 
-        shoppingListViewModel.getAllShoppingLists().observe(this, { items ->
-            items?.let {
-                itemAdapter.setLists(it)
-            }
-        })
+        db.getReference("users/" + mAuth.currentUser!!.uid + "/lists")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    var list = ArrayList<ShoppingListFirebase>()
+                    for (messageSnapshot in dataSnapshot.children) {
+                        list.add(messageSnapshot.getValue(ShoppingListFirebase::class.java) as ShoppingListFirebase)
+                    }
+                    itemAdapter.setLists(list)
+
+                }
+
+                override fun onCancelled(databaseError: DatabaseError) {
+                    Log.e("readDB-error", databaseError.details)
+                }
+            })
         layout.adapter = itemAdapter
         layout.layoutManager = LinearLayoutManager(this)
 
@@ -62,12 +78,16 @@ class ShoppingListActivity : AppCompatActivity(), AdapterActionSetter<ShoppingLi
         startActivity(Intent(this, ShoppingListActivity::class.java))
     }
     fun addList(view: android.view.View) {
-        shoppingListViewModel.insertShoppingList(ShoppingList(Date()))
+        val ref = db.getReference("users/"+ mAuth.currentUser!!.uid).child("lists")
+        val sl = ShoppingListFirebase(Date())
+        ref.child(sl.date.toString()).setValue(sl)
     }
 
-    override fun onItemClick(item: ShoppingListWithItems) {
+    override fun onItemClick(item: ShoppingListFirebase, listName: String, index: Int) {
         val intent = Intent(this, ShoppingListEditActivity::class.java).apply {
-            putExtra("shoppingListId", item.shoppingList.shoppingListId)
+            putExtra("path", "users/" + mAuth.currentUser!!.uid + "/lists/" + listName)
+            putExtra("index", index)
+            putExtra("listName", listName)
         }
         this.startActivity(intent)
     }

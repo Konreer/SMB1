@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.smb1">
-    <permission android:name="com.example.myapp.PERMISSION"/>
-    <uses-permission android:name="com.example.myapp.PERMISSION"/>
+
+    <permission android:name="com.example.myapp.PERMISSION" />
+
+    <uses-permission android:name="com.example.myapp.PERMISSION" />
 
     <application
         android:allowBackup="true"
@@ -11,6 +13,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SMB1">
+        <activity
+            android:name=".Activity.RegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Activity.Login"
+            android:exported="false" />
         <activity
             android:name=".Activity.SettingsActivity"
             android:exported="false" />
