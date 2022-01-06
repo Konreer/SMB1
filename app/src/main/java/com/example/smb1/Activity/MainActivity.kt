@@ -1,9 +1,9 @@
 package com.example.smb1.Activity
 
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
@@ -23,15 +23,43 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
+import com.example.smb1.broadcast.ProximityReceiver
+import com.example.smb1.service.ProximityNotifier
 
 
 class MainActivity : AppCompatActivity(), AdapterActionSetter<ItemFirebase> {
 
+    private val PROX_ALERT_INTENT = "com.example.smb1.service.ProximityAlert"
     private lateinit var mAuth: FirebaseAuth
+    private lateinit var mserv: ProximityNotifier
+    private var mBound: Boolean = false
     private var db: FirebaseDatabase = FirebaseDatabase.getInstance("https://smb3-7fa67-default-rtdb.europe-west1.firebasedatabase.app")
+    private val mcom = object: ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as ProximityNotifier.MyBinder
+            mserv = binder.getService()
+            mBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            mBound = false
+        }
+
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val intent = Intent(this, ProximityNotifier::class.java)
+        bindService(intent, mcom, Context.BIND_AUTO_CREATE)
+        val filter = IntentFilter(PROX_ALERT_INTENT)
+        registerReceiver(ProximityReceiver(), filter)
+        setContentView(R.layout.activity_main)
+
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
+
         mAuth = FirebaseAuth.getInstance()
         if (mAuth.currentUser == null) {
             startActivity(Intent(this, Login::class.java))
@@ -159,6 +187,21 @@ class MainActivity : AppCompatActivity(), AdapterActionSetter<ItemFirebase> {
             if (!fontFamily.equals("")) {
                 textView.typeface = Typeface.createFromAsset(this.assets, fontFamily)
             }
+        }
+    }
+
+    fun goToShopsList(view: android.view.View) {
+        startActivity(Intent(this, ShopListActivity::class.java))
+    }
+    fun goToMap(view: android.view.View) {
+        startActivity(Intent(this, MapsActivity::class.java))
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if(mBound){
+            unbindService(mcom)
+            mBound = false
         }
     }
 }

@@ -25,7 +25,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
 
-class ItemEditActivity() : AppCompatActivity() {
+class ItemEditActivity : AppCompatActivity() {
     private val ACTION_ITEM_ADDED = "com.example.smb1.Activity.ItemEditActivity.ITEMADDED"
 
     private lateinit var item: ItemFirebase

@@ -35,5 +35,6 @@
         <item>opensans_regular</item>
         <item>oswald_regular</item>
     </string-array>
+    <string name="title_activity_maps">MapsActivity</string>
 
 </resources>

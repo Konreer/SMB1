@@ -7,9 +7,9 @@
     tools:context=".Activity.ItemEditActivity">
 
     <EditText
+        android:id="@+id/editTextTextPersonName"
         android:focusable="true"
         android:focusableInTouchMode ="true"
-        android:id="@+id/editTextTextPersonName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="168dp"
